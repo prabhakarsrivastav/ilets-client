@@ -12,7 +12,23 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "https://lively-sky-010d8a300.3.azurestaticapps.net",
+  "https://jolly-dune-0e680e100.3.azurestaticapps.net"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
