@@ -16,7 +16,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8080",
   "https://lively-sky-010d8a300.3.azurestaticapps.net",
-  "https://jolly-dune-0e680e100.3.azurestaticapps.net"
+  "https://jolly-dune-0e680e100.3.azurestaticapps.net",
+  "https://ekeca.vercel.app",
+  "https://admin-mock-dashboard.vercel.app"
 ];
 
 app.use(cors({
