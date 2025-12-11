@@ -1,63 +1,51 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, "../../uploads/audio");
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure storage
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (_req, file, cb) => {
-        // Generate unique filename
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-        cb(null, `audio-${uniqueSuffix}${ext}`);
-    }
-});
+// Use memory storage for Cloudinary uploads
+// Files are stored in memory as Buffer objects, then uploaded to Cloudinary
+const memoryStorage = multer.memoryStorage();
 
 // File filter for audio files
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    const allowedTypes = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/m4a", "audio/x-m4a"];
+    const allowedTypes = [
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/ogg",
+        "audio/m4a",
+        "audio/x-m4a",
+        "audio/mp4",
+        "audio/aac"
+    ];
 
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Only audio files are allowed."));
+        cb(new Error("Invalid file type. Only audio files are allowed (MP3, WAV, OGG, M4A, AAC)."));
     }
 };
 
-// Configure multer
+// Configure multer with memory storage for Cloudinary
 export const audioUpload = multer({
-    storage,
+    storage: memoryStorage,
     fileFilter,
     limits: {
         fileSize: 50 * 1024 * 1024 // 50MB max
     }
 });
 
-// Helper to get audio URL from filename
-export const getAudioUrl = (filename: string): string => {
-    return `/uploads/audio/${filename}`;
+// Helper to check if a URL is a Cloudinary URL
+export const isCloudinaryUrl = (url: string): boolean => {
+    return url.includes("cloudinary.com") || url.includes("res.cloudinary");
 };
 
-// Helper to delete old audio file
-export const deleteAudioFile = (audioUrl: string): void => {
-    if (audioUrl.startsWith("/uploads/audio/")) {
-        const filename = audioUrl.replace("/uploads/audio/", "");
-        const filepath = path.join(uploadsDir, filename);
+// Helper to extract public_id from Cloudinary URL for deletion
+export const getCloudinaryPublicId = (url: string): string | null => {
+    if (!isCloudinaryUrl(url)) return null;
 
-        if (fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
-        }
+    // Cloudinary URL format: https://res.cloudinary.com/cloud_name/video/upload/v123/folder/public_id.ext
+    const match = url.match(/\/v\d+\/(.+)\.\w+$/);
+    if (match) {
+        return match[1]; // Returns "folder/public_id"
     }
+    return null;
 };

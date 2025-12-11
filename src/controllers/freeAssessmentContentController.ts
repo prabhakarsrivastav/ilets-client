@@ -214,27 +214,33 @@ export const deleteListeningPart = async (req: Request, res: Response) => {
     }
 };
 
-// Upload audio file
+// Upload audio file to Cloudinary
 export const uploadAudio = async (req: Request, res: Response) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: "No audio file uploaded" });
         }
 
-        const audioUrl = `/uploads/audio/${req.file.filename}`;
+        // Import Cloudinary utility dynamically to avoid circular deps
+        const { uploadAudioToCloudinary } = await import("../utils/cloudinary.js");
+
+        // Upload to Cloudinary
+        const result = await uploadAudioToCloudinary(req.file.buffer, req.file.originalname);
 
         res.json({
             success: true,
-            message: "Audio uploaded successfully",
+            message: "Audio uploaded successfully to Cloudinary",
             data: {
-                filename: req.file.filename,
-                audioUrl,
-                originalName: req.file.originalname,
-                size: req.file.size
+                filename: result.public_id,
+                audioUrl: result.secure_url, // This is the Cloudinary URL
+                originalName: result.original_filename,
+                size: result.bytes,
+                duration: result.duration,
+                format: result.format
             }
         });
     } catch (error) {
         console.error("Error uploading audio:", error);
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Failed to upload audio to cloud storage" });
     }
 };
