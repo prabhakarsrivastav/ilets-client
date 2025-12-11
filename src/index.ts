@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.js";
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -9,6 +11,9 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import assessmentRoutes from "./routes/assessmentRoutes.js";
 import freeAssessmentRoutes from "./routes/freeAssessmentRoutes.js";
 import freeAssessmentContentRoutes from "./routes/freeAssessmentContentRoutes.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-platform";
@@ -38,6 +43,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files as static
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 mongoose
   .connect(MONGODB_URI)
