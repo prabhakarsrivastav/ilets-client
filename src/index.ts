@@ -7,6 +7,8 @@ import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import submissionRoutes from "./routes/submissionRoutes.js";
 import assessmentRoutes from "./routes/assessmentRoutes.js";
+import freeAssessmentRoutes from "./routes/freeAssessmentRoutes.js";
+import freeAssessmentContentRoutes from "./routes/freeAssessmentContentRoutes.js";
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-platform";
@@ -51,6 +53,8 @@ app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/assessments", assessmentRoutes);
+app.use("/api/free-assessments", freeAssessmentRoutes);
+app.use("/api/free-assessment-content", freeAssessmentContentRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
