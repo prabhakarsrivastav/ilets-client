@@ -2,10 +2,18 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.js";
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import submissionRoutes from "./routes/submissionRoutes.js";
+import assessmentRoutes from "./routes/assessmentRoutes.js";
+import freeAssessmentRoutes from "./routes/freeAssessmentRoutes.js";
+import freeAssessmentContentRoutes from "./routes/freeAssessmentContentRoutes.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-platform";
@@ -15,6 +23,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8080",
+  "http://localhost:8081",
   "https://lively-sky-010d8a300.3.azurestaticapps.net",
   "https://jolly-dune-0e680e100.3.azurestaticapps.net",
   "https://ekeca.vercel.app",
@@ -34,6 +43,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files as static
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 mongoose
   .connect(MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))
@@ -47,6 +59,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/submissions", submissionRoutes);
+app.use("/api/assessments", assessmentRoutes);
+app.use("/api/free-assessments", freeAssessmentRoutes);
+app.use("/api/free-assessment-content", freeAssessmentContentRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
