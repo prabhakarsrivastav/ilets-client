@@ -5,7 +5,7 @@ import multer from "multer";
 const memoryStorage = multer.memoryStorage();
 
 // File filter for audio files
-const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const audioFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = [
         "audio/mpeg",
         "audio/mp3",
@@ -24,12 +24,38 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
     }
 };
 
-// Configure multer with memory storage for Cloudinary
+// File filter for image files
+const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp"
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file type. Only image files are allowed (JPEG, PNG, GIF, WebP)."));
+    }
+};
+
+// Configure multer with memory storage for audio uploads to Cloudinary
 export const audioUpload = multer({
     storage: memoryStorage,
-    fileFilter,
+    fileFilter: audioFileFilter,
     limits: {
         fileSize: 100 * 1024 * 1024 // 100MB max for 30-minute audio files
+    }
+});
+
+// Configure multer with memory storage for image uploads to Cloudinary
+export const imageUpload = multer({
+    storage: memoryStorage,
+    fileFilter: imageFileFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB max for images
     }
 });
 
