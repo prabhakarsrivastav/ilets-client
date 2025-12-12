@@ -21,6 +21,7 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-
 const app = express();
 
 const allowedOrigins = [
+  "http://localhost:8081",
   "http://localhost:5173",
   "http://localhost:8080",
   "https://lively-sky-010d8a300.3.azurestaticapps.net",
@@ -41,8 +42,8 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Serve uploaded files as static
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

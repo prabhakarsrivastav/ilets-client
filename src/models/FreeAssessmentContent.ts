@@ -12,11 +12,11 @@ interface IQuestion {
     matchingPairs?: { left: string; right: string }[];  // For matching type
 }
 
-// Listening Part interface
+// Listening Part interface (audio now at section level, not per-part)
 interface IListeningPart {
     partNumber: number;
-    audioUrl: string;
-    audioTitle: string;
+    audioUrl?: string;       // Deprecated - now at section level
+    audioTitle?: string;     // Deprecated - now at section level
     audioDescription?: string;
     questions: IQuestion[];
 }
@@ -44,7 +44,12 @@ export interface IFreeAssessmentContent extends Document {
     isActive: boolean;
     createdBy?: mongoose.Types.ObjectId;
 
-    // Listening specific
+    // Listening section-level audio (single 30-min clip)
+    listeningAudioUrl?: string;
+    listeningAudioTitle?: string;
+    listeningAudioDescription?: string;
+
+    // Listening parts (questions only, audio is at section level)
     listeningParts?: IListeningPart[];
 
     // Reading specific (future)
@@ -78,8 +83,8 @@ const questionSchema = new Schema({
 
 const listeningPartSchema = new Schema({
     partNumber: { type: Number, required: true, min: 1, max: 4 },
-    audioUrl: { type: String, default: "" },  // Optional for draft state
-    audioTitle: { type: String, default: "" },  // Optional for draft state
+    audioUrl: { type: String },      // Deprecated - kept for migration
+    audioTitle: { type: String },    // Deprecated - kept for migration
     audioDescription: { type: String },
     questions: [questionSchema]
 }, { _id: false });
@@ -110,6 +115,11 @@ const freeAssessmentContentSchema = new Schema<IFreeAssessmentContent>(
         },
         isActive: { type: Boolean, default: false },
         createdBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+
+        // Single 30-minute audio for listening section
+        listeningAudioUrl: { type: String },
+        listeningAudioTitle: { type: String },
+        listeningAudioDescription: { type: String },
 
         listeningParts: [listeningPartSchema],
         readingPassages: [readingPassageSchema],

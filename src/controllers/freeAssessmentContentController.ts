@@ -53,14 +53,21 @@ export const getActiveContent = async (req: Request, res: Response) => {
 // Create or update listening content
 export const saveListeningContent = async (req: Request, res: Response) => {
     try {
-        const { listeningParts, isActive } = req.body;
+        const {
+            listeningParts,
+            isActive,
+            // Section-level audio (single 30-min clip)
+            listeningAudioUrl,
+            listeningAudioTitle,
+            listeningAudioDescription
+        } = req.body;
 
         // Validate parts
         if (!listeningParts || !Array.isArray(listeningParts)) {
             return res.status(400).json({ success: false, message: "Listening parts are required" });
         }
 
-        // Validate each part has at least partNumber (allow empty audioUrl for draft state)
+        // Validate each part has at least partNumber
         for (const part of listeningParts) {
             if (!part.partNumber) {
                 return res.status(400).json({
@@ -76,11 +83,18 @@ export const saveListeningContent = async (req: Request, res: Response) => {
         if (content) {
             content.listeningParts = listeningParts;
             content.isActive = isActive ?? content.isActive;
+            // Update section-level audio
+            if (listeningAudioUrl !== undefined) content.listeningAudioUrl = listeningAudioUrl;
+            if (listeningAudioTitle !== undefined) content.listeningAudioTitle = listeningAudioTitle;
+            if (listeningAudioDescription !== undefined) content.listeningAudioDescription = listeningAudioDescription;
         } else {
             content = new FreeAssessmentContent({
                 sectionType: "listening",
                 listeningParts,
-                isActive: isActive ?? false
+                isActive: isActive ?? false,
+                listeningAudioUrl,
+                listeningAudioTitle,
+                listeningAudioDescription
             });
         }
 
@@ -214,18 +228,34 @@ export const deleteListeningPart = async (req: Request, res: Response) => {
     }
 };
 
-// Upload audio file to Cloudinary
+// Upload audio file to Cloudinary (with compression for large files)
 export const uploadAudio = async (req: Request, res: Response) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: "No audio file uploaded" });
         }
 
+        let audioBuffer = req.file.buffer;
+        const originalSize = audioBuffer.length;
+
+        // Compress large audio files (>5MB) using FFmpeg before upload
+        if (originalSize > 5 * 1024 * 1024) {
+            console.log(`Large audio file detected (${Math.round(originalSize / 1024 / 1024)}MB), compressing...`);
+            try {
+                const { compressAudio } = await import("../utils/audioCompressor.js");
+                audioBuffer = await compressAudio(audioBuffer);
+                console.log(`Compression complete: ${Math.round(originalSize / 1024 / 1024)}MB -> ${Math.round(audioBuffer.length / 1024 / 1024)}MB`);
+            } catch (compressError) {
+                console.error("Compression failed, trying to upload original:", compressError);
+                // Continue with original buffer if compression fails
+            }
+        }
+
         // Import Cloudinary utility dynamically to avoid circular deps
         const { uploadAudioToCloudinary } = await import("../utils/cloudinary.js");
 
         // Upload to Cloudinary
-        const result = await uploadAudioToCloudinary(req.file.buffer, req.file.originalname);
+        const result = await uploadAudioToCloudinary(audioBuffer, req.file.originalname);
 
         res.json({
             success: true,
@@ -235,6 +265,7 @@ export const uploadAudio = async (req: Request, res: Response) => {
                 audioUrl: result.secure_url, // This is the Cloudinary URL
                 originalName: result.original_filename,
                 size: result.bytes,
+                originalSize: originalSize,
                 duration: result.duration,
                 format: result.format
             }

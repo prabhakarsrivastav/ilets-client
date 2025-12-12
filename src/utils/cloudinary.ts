@@ -20,6 +20,7 @@ export interface CloudinaryUploadResult {
 
 /**
  * Upload audio buffer to Cloudinary
+ * Uses chunked upload for large files (>10MB)
  */
 export const uploadAudioToCloudinary = (
     buffer: Buffer,
@@ -32,9 +33,11 @@ export const uploadAudioToCloudinary = (
                 folder: "ielts-audio",
                 public_id: `audio-${Date.now()}`,
                 format: "mp3",
+                chunk_size: 6000000, // 6MB chunks for large file uploads
             },
             (error, result) => {
                 if (error) {
+                    console.error("Cloudinary upload error:", error);
                     reject(error);
                 } else if (result) {
                     resolve({
