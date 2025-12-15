@@ -481,16 +481,16 @@ export const uploadImage = async (req: Request, res: Response) => {
         const result = await new Promise<any>((resolve, reject) => {
             const uploadStream = cloudinary.v2.uploader.upload_stream(
                 {
-                    folder: "ielts-writing-images",
+                    folder: "ielts-reading-images",
                     resource_type: "image",
-                    format: "auto",  // Auto-detect format
-                    transformation: [
-                        { quality: "auto:good" },  // Optimize quality
-                        { fetch_format: "auto" }   // Auto-select best format
-                    ]
+                    quality: "auto:good",
+                    fetch_format: "auto"
                 },
                 (error, result) => {
-                    if (error) reject(error);
+                    if (error) {
+                        console.error("Cloudinary upload_stream error:", error);
+                        reject(error);
+                    }
                     else resolve(result);
                 }
             );

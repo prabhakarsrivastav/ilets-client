@@ -29,7 +29,8 @@ const allowedOrigins = [
   "https://ekeca.vercel.app",
   "https://admin-mock-dashboard.vercel.app",
   "https://oneeka.vercel.app",
-  "https://admin-mock-dashboard-5sb7.vercel.app"
+  "https://admin-mock-dashboard-5sb7.vercel.app",
+  "https://oneake.vercel.app"  // ONEAKE frontend
 ];
 
 app.use(cors({

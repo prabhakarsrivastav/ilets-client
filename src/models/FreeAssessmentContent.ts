@@ -105,6 +105,7 @@ const readingPassageSchema = new Schema({
     passageNumber: { type: Number, required: true },
     title: { type: String, required: true },
     content: { type: String, required: true },
+    imageUrl: { type: String },  // For passage images (maps, diagrams, charts)
     sectionLabels: [{ type: String }],  // For passages with labeled sections
     questions: [questionSchema]
 }, { _id: false });
