@@ -50,6 +50,7 @@ export interface IFreeAssessmentContent extends Document {
     sectionType: "listening" | "reading" | "writing";
     examType: "general" | "academic";  // General Education uses "general" content
     isActive: boolean;
+    useGeneralContent?: boolean;  // For academic: if true, use questions from general section
     createdBy?: mongoose.Types.ObjectId;
 
     // Listening section-level audio (single 30-min clip)
@@ -135,6 +136,7 @@ const freeAssessmentContentSchema = new Schema<IFreeAssessmentContent>(
             default: "general"
         },
         isActive: { type: Boolean, default: false },
+        useGeneralContent: { type: Boolean, default: false },  // For academic: use general questions
         createdBy: { type: Schema.Types.ObjectId, ref: "Admin" },
 
         // Single 30-minute audio for listening section

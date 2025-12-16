@@ -46,6 +46,37 @@ export const getActiveContent = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Invalid exam type" });
         }
 
+        // For Academic exam type, check if useGeneralContent is enabled
+        if (examType === "academic") {
+            const academicContent = await FreeAssessmentContent.findOne({
+                sectionType: type,
+                examType: "academic"
+            });
+
+            // If Academic has useGeneralContent enabled, return General content
+            if (academicContent?.useGeneralContent) {
+                const generalContent = await FreeAssessmentContent.findOne({
+                    sectionType: type,
+                    examType: "general",
+                    isActive: true
+                });
+
+                if (!generalContent) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "No active General content found. Please activate General content first."
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    data: generalContent,
+                    usingGeneralContent: true // Flag to indicate we're using General content
+                });
+            }
+        }
+
+        // Normal flow: get content for requested exam type
         const content = await FreeAssessmentContent.findOne({
             sectionType: type,
             examType,
@@ -380,6 +411,53 @@ export const toggleActiveStatus = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Error toggling status:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Toggle useGeneralContent for academic sections
+export const toggleUseGeneralContent = async (req: Request, res: Response) => {
+    try {
+        const { type } = req.params;
+        const examType = (req.query.examType as string);
+
+        // Only valid for academic exam type
+        if (examType !== "academic") {
+            return res.status(400).json({
+                success: false,
+                message: "This feature is only available for Academic exam type"
+            });
+        }
+
+        if (!["listening", "reading", "writing"].includes(type)) {
+            return res.status(400).json({ success: false, message: "Invalid section type" });
+        }
+
+        // Find existing academic content
+        let content = await FreeAssessmentContent.findOne({ sectionType: type, examType: "academic" });
+
+        if (!content) {
+            // If no academic content exists, we need to check if there's a document with just sectionType
+            // and update it, or inform the user to create content first
+            return res.status(404).json({
+                success: false,
+                message: `Please save Academic ${type} content at least once before enabling this feature. Go to Academic ${type.charAt(0).toUpperCase() + type.slice(1)} page and save.`
+            });
+        }
+
+        // Toggle the useGeneralContent flag
+        content.useGeneralContent = !content.useGeneralContent;
+        await content.save();
+
+        res.json({
+            success: true,
+            message: content.useGeneralContent
+                ? "Now using General content for Academic exam"
+                : "Now using separate Academic content",
+            data: { useGeneralContent: content.useGeneralContent }
+        });
+    } catch (error) {
+        console.error("Error toggling useGeneralContent:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

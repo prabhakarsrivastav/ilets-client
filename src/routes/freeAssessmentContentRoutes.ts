@@ -7,6 +7,7 @@ import {
     saveWritingContent,
     updateListeningPart,
     toggleActiveStatus,
+    toggleUseGeneralContent,
     deleteListeningPart,
     uploadAudio,
     uploadImage
@@ -29,8 +30,9 @@ router.delete("/listening/part/:partNumber", deleteListeningPart);
 router.post("/upload/audio", audioUpload.single("audio"), uploadAudio);
 router.post("/upload/image", imageUpload.single("image"), uploadImage);
 
-// Toggle route with type parameter
+// Toggle routes with type parameter
 router.patch("/:type/toggle", toggleActiveStatus);
+router.patch("/:type/toggle-use-general", toggleUseGeneralContent);
 
 // Generic route LAST (catch-all for type)
 router.get("/:type", getContentByType);
