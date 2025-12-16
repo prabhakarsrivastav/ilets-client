@@ -30,7 +30,8 @@ const allowedOrigins = [
   "https://admin-mock-dashboard.vercel.app",
   "https://oneeka.vercel.app",
   "https://admin-mock-dashboard-5sb7.vercel.app",
-  "https://oneake.vercel.app"  // ONEAKE frontend
+  "https://oneake.vercel.app",  // ONEAKE frontend
+  "https://one-eka.netlify.app"
 ];
 
 app.use(cors({
