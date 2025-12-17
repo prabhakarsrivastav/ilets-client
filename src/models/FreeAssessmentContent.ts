@@ -30,6 +30,7 @@ interface IReadingPassage {
     passageNumber: number;
     title: string;
     content: string;
+    isActive?: boolean;
     sectionLabels?: string[];  // For passages with labeled sections ("A", "B", "C"...)
     questions: IQuestion[];
 }
@@ -107,6 +108,7 @@ const readingPassageSchema = new Schema({
     title: { type: String, required: true },
     content: { type: String, required: true },
     imageUrl: { type: String },  // For passage images (maps, diagrams, charts)
+    isActive: { type: Boolean, default: true },
     sectionLabels: [{ type: String }],  // For passages with labeled sections
     questions: [questionSchema]
 }, { _id: false });

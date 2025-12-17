@@ -68,6 +68,11 @@ export const getActiveContent = async (req: Request, res: Response) => {
                     });
                 }
 
+                // Filter inactive reading passages
+                if (generalContent.sectionType === "reading" && generalContent.readingPassages) {
+                    generalContent.readingPassages = generalContent.readingPassages.filter(p => p.isActive !== false);
+                }
+
                 return res.json({
                     success: true,
                     data: generalContent,
@@ -85,6 +90,11 @@ export const getActiveContent = async (req: Request, res: Response) => {
 
         if (!content) {
             return res.status(404).json({ success: false, message: "No active content found for this exam type" });
+        }
+
+        // Filter inactive reading passages
+        if (content.sectionType === "reading" && content.readingPassages) {
+            content.readingPassages = content.readingPassages.filter(p => p.isActive !== false);
         }
 
         res.json({

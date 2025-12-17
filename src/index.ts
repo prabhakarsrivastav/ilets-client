@@ -11,6 +11,9 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 import assessmentRoutes from "./routes/assessmentRoutes.js";
 import freeAssessmentRoutes from "./routes/freeAssessmentRoutes.js";
 import freeAssessmentContentRoutes from "./routes/freeAssessmentContentRoutes.js";
+import scheduleRoutes from "./routes/scheduleRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import evaluationRoutes from "./routes/evaluationRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +69,9 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/assessments", assessmentRoutes);
 app.use("/api/free-assessments", freeAssessmentRoutes);
 app.use("/api/free-assessment-content", freeAssessmentContentRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/evaluations", evaluationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
