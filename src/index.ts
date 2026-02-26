@@ -37,6 +37,12 @@ const allowedOrigins = [
   "https://one-eka.netlify.app"
 ];
 
+if (process.env.CORS_ORIGIN) {
+  // Add multiple origins if comma-separated
+  const envOrigins = process.env.CORS_ORIGIN.split(',').map(url => url.trim());
+  allowedOrigins.push(...envOrigins);
+}
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
