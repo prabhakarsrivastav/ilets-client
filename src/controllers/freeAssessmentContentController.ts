@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import FreeAssessmentContent from "../models/FreeAssessmentContent.js";
 
-// Get content by section type and exam type
-export const getContentByType = async (req: Request, res: Response) => {
+// Get all sets by section type and exam type
+export const getSetsByType = async (req: Request, res: Response) => {
     try {
         const { type } = req.params;
         const examType = (req.query.examType as string) || "general";
@@ -15,7 +15,43 @@ export const getContentByType = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Invalid exam type" });
         }
 
-        const content = await FreeAssessmentContent.findOne({ sectionType: type, examType });
+        const sets = await FreeAssessmentContent.find({ sectionType: type, examType }).select('-listeningParts -readingPassages -writingTasks');
+
+        res.json({
+            success: true,
+            data: sets
+        });
+    } catch (error) {
+        console.error("Error fetching sets:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Get specific content by section type and exam type (or by set ID if provided)
+export const getContentByType = async (req: Request, res: Response) => {
+    try {
+        const { type } = req.params;
+        const examType = (req.query.examType as string) || "general";
+        const setId = req.query.setId as string;
+
+        if (!["listening", "reading", "writing"].includes(type)) {
+            return res.status(400).json({ success: false, message: "Invalid section type" });
+        }
+
+        if (!["general", "academic"].includes(examType)) {
+            return res.status(400).json({ success: false, message: "Invalid exam type" });
+        }
+
+        let content;
+        if (setId) {
+            content = await FreeAssessmentContent.findById(setId);
+        } else {
+            // Default to the active one, or just the first one if none active
+            content = await FreeAssessmentContent.findOne({ sectionType: type, examType, isActive: true });
+            if (!content) {
+                content = await FreeAssessmentContent.findOne({ sectionType: type, examType });
+            }
+        }
 
         res.json({
             success: true,
@@ -111,6 +147,8 @@ export const getActiveContent = async (req: Request, res: Response) => {
 export const saveListeningContent = async (req: Request, res: Response) => {
     try {
         const {
+            setId,
+            setName,
             listeningParts,
             isActive,
             examType,
@@ -125,6 +163,8 @@ export const saveListeningContent = async (req: Request, res: Response) => {
         if (!["general", "academic"].includes(validExamType)) {
             return res.status(400).json({ success: false, message: "Invalid exam type" });
         }
+
+        const actualSetName = setName || "Default Set";
 
         // Validate parts
         if (!listeningParts || !Array.isArray(listeningParts)) {
@@ -141,20 +181,17 @@ export const saveListeningContent = async (req: Request, res: Response) => {
             }
         }
 
-        // Find existing or create new by sectionType AND examType
-        let content = await FreeAssessmentContent.findOne({ sectionType: "listening", examType: validExamType });
-
-        if (content) {
-            content.listeningParts = listeningParts;
-            content.isActive = isActive ?? content.isActive;
-            // Update section-level audio
-            if (listeningAudioUrl !== undefined) content.listeningAudioUrl = listeningAudioUrl;
-            if (listeningAudioTitle !== undefined) content.listeningAudioTitle = listeningAudioTitle;
-            if (listeningAudioDescription !== undefined) content.listeningAudioDescription = listeningAudioDescription;
+        let content;
+        if (setId) {
+            content = await FreeAssessmentContent.findById(setId);
+            if (!content) {
+                return res.status(404).json({ success: false, message: "Assessment set not found" });
+            }
         } else {
             content = new FreeAssessmentContent({
                 sectionType: "listening",
                 examType: validExamType,
+                setName: actualSetName,
                 listeningParts,
                 isActive: isActive ?? false,
                 listeningAudioUrl,
@@ -163,7 +200,26 @@ export const saveListeningContent = async (req: Request, res: Response) => {
             });
         }
 
-        await content.save();
+        if (content) {
+            content.setName = actualSetName;
+            content.listeningParts = listeningParts;
+            content.isActive = isActive ?? content.isActive;
+            // Update section-level audio
+            if (listeningAudioUrl !== undefined) content.listeningAudioUrl = listeningAudioUrl;
+            if (listeningAudioTitle !== undefined) content.listeningAudioTitle = listeningAudioTitle;
+            if (listeningAudioDescription !== undefined) content.listeningAudioDescription = listeningAudioDescription;
+
+            // If activating this set, deactivate others for the same section + examType
+            if (content.isActive) {
+                await FreeAssessmentContent.updateMany({
+                    sectionType: "listening",
+                    examType: validExamType,
+                    _id: { $ne: content._id }
+                }, { $set: { isActive: false } });
+            }
+
+            await content.save();
+        }
 
         res.json({
             success: true,
@@ -180,6 +236,8 @@ export const saveListeningContent = async (req: Request, res: Response) => {
 export const saveReadingContent = async (req: Request, res: Response) => {
     try {
         const {
+            setId,
+            setName,
             readingPassages,
             isActive,
             examType
@@ -190,6 +248,8 @@ export const saveReadingContent = async (req: Request, res: Response) => {
         if (!["general", "academic"].includes(validExamType)) {
             return res.status(400).json({ success: false, message: "Invalid exam type" });
         }
+
+        const actualSetName = setName || "Default Set";
 
         // Validate passages
         if (!readingPassages || !Array.isArray(readingPassages)) {
@@ -228,22 +288,38 @@ export const saveReadingContent = async (req: Request, res: Response) => {
             });
         }
 
-        // Find existing or create new by sectionType AND examType
-        let content = await FreeAssessmentContent.findOne({ sectionType: "reading", examType: validExamType });
-
-        if (content) {
-            content.readingPassages = readingPassages;
-            content.isActive = isActive ?? content.isActive;
+        let content;
+        if (setId) {
+            content = await FreeAssessmentContent.findById(setId);
+            if (!content) {
+                return res.status(404).json({ success: false, message: "Assessment set not found" });
+            }
         } else {
             content = new FreeAssessmentContent({
                 sectionType: "reading",
                 examType: validExamType,
+                setName: actualSetName,
                 readingPassages,
                 isActive: isActive ?? false
             });
         }
 
-        await content.save();
+        if (content) {
+            content.setName = actualSetName;
+            content.readingPassages = readingPassages;
+            content.isActive = isActive ?? content.isActive;
+
+            // If activating this set, deactivate others for the same section + examType
+            if (content.isActive) {
+                await FreeAssessmentContent.updateMany({
+                    sectionType: "reading",
+                    examType: validExamType,
+                    _id: { $ne: content._id }
+                }, { $set: { isActive: false } });
+            }
+
+            await content.save();
+        }
 
         res.json({
             success: true,
@@ -260,6 +336,8 @@ export const saveReadingContent = async (req: Request, res: Response) => {
 export const saveWritingContent = async (req: Request, res: Response) => {
     try {
         const {
+            setId,
+            setName,
             writingTasks,
             isActive,
             examType
@@ -270,6 +348,8 @@ export const saveWritingContent = async (req: Request, res: Response) => {
         if (!["general", "academic"].includes(validExamType)) {
             return res.status(400).json({ success: false, message: "Invalid exam type" });
         }
+
+        const actualSetName = setName || "Default Set";
 
         // Validate tasks
         if (!writingTasks || !Array.isArray(writingTasks)) {
@@ -307,31 +387,47 @@ export const saveWritingContent = async (req: Request, res: Response) => {
             });
         }
 
-        // Find existing or create new by sectionType AND examType
-        let content = await FreeAssessmentContent.findOne({ sectionType: "writing", examType: validExamType });
-
-        if (content) {
-            content.writingTasks = writingTasks;
-            content.isActive = isActive ?? content.isActive;
+        let content;
+        if (setId) {
+            content = await FreeAssessmentContent.findById(setId);
+            if (!content) {
+                return res.status(404).json({ success: false, message: "Assessment set not found" });
+            }
         } else {
             content = new FreeAssessmentContent({
                 sectionType: "writing",
                 examType: validExamType,
+                setName: actualSetName,
                 writingTasks,
                 isActive: isActive ?? false
             });
         }
 
-        await content.save();
+        if (content) {
+            content.setName = actualSetName;
+            content.writingTasks = writingTasks;
+            content.isActive = isActive ?? content.isActive;
+
+            // If activating this set, deactivate others for the same section + examType
+            if (content.isActive) {
+                await FreeAssessmentContent.updateMany({
+                    sectionType: "writing",
+                    examType: validExamType,
+                    _id: { $ne: content._id }
+                }, { $set: { isActive: false } });
+            }
+
+            await content.save();
+        }
 
         res.json({
             success: true,
             message: "Writing content saved successfully",
             data: content
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving writing content:", error);
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };
 
@@ -402,16 +498,29 @@ export const updateListeningPart = async (req: Request, res: Response) => {
 // Toggle active status
 export const toggleActiveStatus = async (req: Request, res: Response) => {
     try {
-        const { type } = req.params;
-        const examType = (req.query.examType as string) || "general";
+        const { setId } = req.body;
 
-        const content = await FreeAssessmentContent.findOne({ sectionType: type, examType });
+        if (!setId) {
+            return res.status(400).json({ success: false, message: "Set ID is required" });
+        }
+
+        const content = await FreeAssessmentContent.findById(setId);
 
         if (!content) {
             return res.status(404).json({ success: false, message: "Content not found" });
         }
 
         content.isActive = !content.isActive;
+
+        // If activating, deactivate others
+        if (content.isActive) {
+            await FreeAssessmentContent.updateMany({
+                sectionType: content.sectionType,
+                examType: content.examType,
+                _id: { $ne: content._id }
+            }, { $set: { isActive: false } });
+        }
+
         await content.save();
 
         res.json({
@@ -472,30 +581,28 @@ export const toggleUseGeneralContent = async (req: Request, res: Response) => {
     }
 };
 
-// Delete a listening part
-export const deleteListeningPart = async (req: Request, res: Response) => {
+// Delete a complete assessment set
+export const deleteSet = async (req: Request, res: Response) => {
     try {
-        const { partNumber } = req.params;
+        const { setId } = req.params;
 
-        const content = await FreeAssessmentContent.findOne({ sectionType: "listening" });
-
-        if (!content || !content.listeningParts) {
-            return res.status(404).json({ success: false, message: "Content not found" });
+        if (!setId) {
+            return res.status(400).json({ success: false, message: "Set ID is required" });
         }
 
-        content.listeningParts = content.listeningParts.filter(
-            p => p.partNumber !== parseInt(partNumber)
-        );
+        const content = await FreeAssessmentContent.findByIdAndDelete(setId);
 
-        await content.save();
+        if (!content) {
+            return res.status(404).json({ success: false, message: "Assessment set not found" });
+        }
 
         res.json({
             success: true,
-            message: `Part ${partNumber} deleted successfully`,
+            message: "Assessment set deleted successfully",
             data: content
         });
     } catch (error) {
-        console.error("Error deleting part:", error);
+        console.error("Error deleting set:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

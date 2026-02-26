@@ -71,6 +71,7 @@ export interface IFreeAssessmentContent extends Document {
     // Metadata
     totalQuestions: number;
     lastUpdatedAt: Date;
+    setName: string;
 }
 
 const questionSchema = new Schema({
@@ -151,13 +152,18 @@ const freeAssessmentContentSchema = new Schema<IFreeAssessmentContent>(
         writingTasks: [writingTaskSchema],
 
         totalQuestions: { type: Number, default: 0 },
-        lastUpdatedAt: { type: Date, default: Date.now }
+        lastUpdatedAt: { type: Date, default: Date.now },
+
+        // Added for multiple set support
+        setName: { type: String, required: true, default: "Default Set" }
     },
     { timestamps: true }
 );
 
-// Compound unique index: one document per sectionType + examType combination
-freeAssessmentContentSchema.index({ sectionType: 1, examType: 1 }, { unique: true });
+// We no longer want a strict unique index strictly on sectionType+examType,
+// as an exam can have multiple sets for the same section.
+// However, we want to ensure that set names are unique per exam section.
+freeAssessmentContentSchema.index({ sectionType: 1, examType: 1, setName: 1 }, { unique: true });
 freeAssessmentContentSchema.index({ isActive: 1 });
 
 // Pre-save to calculate total questions (excluding instruction types)
