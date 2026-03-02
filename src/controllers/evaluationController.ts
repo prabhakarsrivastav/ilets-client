@@ -260,6 +260,12 @@ export const calculateAutoGrades = async (req: Request, res: Response) => {
         const listeningBand = calculateBandScore(listeningCorrect, listeningTotal);
         const readingBand = calculateBandScore(readingCorrect, readingTotal);
 
+        let totalScore = 0;
+        let sectionsCount = 0;
+        if (listeningBand > 0) { totalScore += listeningBand; sectionsCount++; }
+        if (readingBand > 0) { totalScore += readingBand; sectionsCount++; }
+        const calculatedOverall = sectionsCount > 0 ? Math.round((totalScore / sectionsCount) * 2) / 2 : null;
+
         // Update evaluation
         assessment.evaluation = {
             listeningScore: {
@@ -279,7 +285,7 @@ export const calculateAutoGrades = async (req: Request, res: Response) => {
                 task2: null,
                 overall: null,
             },
-            overallBand: null,
+            overallBand: calculatedOverall,
             evaluatedBy: null,
             evaluatedAt: new Date(),
             notes: "",
@@ -320,14 +326,20 @@ export const saveEvaluation = async (req: Request, res: Response) => {
             evaluatedAt: new Date(),
         };
 
-        // Calculate overall band if all sections are scored
+        // Calculate overall band if sections are scored
         const listening = evaluation.listeningScore?.manual ?? evaluation.listeningScore?.auto ?? 0;
         const reading = evaluation.readingScore?.manual ?? evaluation.readingScore?.auto ?? 0;
         const writing = evaluation.writingScore?.overall ?? 0;
 
-        if (assessment.evaluation && listening > 0 && reading > 0 && writing > 0) {
-            // Simple average (speaking would be added later)
-            assessment.evaluation.overallBand = Math.round(((listening + reading + writing) / 3) * 2) / 2;
+        let totalScore = 0;
+        let sectionsCount = 0;
+        if (listening > 0) { totalScore += listening; sectionsCount++; }
+        if (reading > 0) { totalScore += reading; sectionsCount++; }
+        if (writing > 0) { totalScore += writing; sectionsCount++; }
+
+        if (assessment.evaluation && sectionsCount > 0) {
+            // Simple average of available sections
+            assessment.evaluation.overallBand = Math.round((totalScore / sectionsCount) * 2) / 2;
         }
 
         await assessment.save();

@@ -24,17 +24,9 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:8081",
-  "http://localhost:5173",
-  "http://localhost:8080",
-  "https://lively-sky-010d8a300.3.azurestaticapps.net",
-  "https://jolly-dune-0e680e100.3.azurestaticapps.net",
-  "https://ekeca.vercel.app",
-  "https://admin-mock-dashboard.vercel.app",
-  "https://oneeka.vercel.app",
-  "https://admin-mock-dashboard-5sb7.vercel.app",
-  "https://oneake.vercel.app",  // ONEAKE frontend
-  "https://one-eka.netlify.app"
+  "https://ilets-frontend.vercel.app",
+  "https://ilets-admin.vercel.app",
+  "http://localhost:8080"
 ];
 
 if (process.env.CORS_ORIGIN) {
