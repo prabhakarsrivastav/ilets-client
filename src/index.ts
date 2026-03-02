@@ -24,16 +24,9 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ielts-
 const app = express();
 
 const allowedOrigins = [
-<<<<<<< HEAD
   "https://ilets-frontend.vercel.app",
   "https://ilets-admin.vercel.app",
   "http://localhost:8080"
-=======
-  "https://ilets-frontend.vercel.app/",
-  "https://ilets-admin.vercel.app/",
-  "http://localhost:8080",
-  "https://lively-sky-010d8a300.3.azurestaticapps.net"
->>>>>>> 752e5031ad0287da508d9957a2e37457684c314d
 ];
 
 if (process.env.CORS_ORIGIN) {
